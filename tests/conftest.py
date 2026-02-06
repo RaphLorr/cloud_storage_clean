@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from cloud_storage_clean.models import BucketInfo, FileInfo
+from cloud_storage_clean.models import FileInfo
 
 
 def pytest_addoption(parser):
@@ -26,29 +26,6 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Enable destructive delete tests (use with caution!)",
-    )
-
-
-@pytest.fixture
-def sample_bucket_info() -> BucketInfo:
-    """Create sample bucket info for testing."""
-    return BucketInfo(
-        name="test-bucket",
-        creation_date=datetime(2023, 1, 1),
-        provider="tencent",
-        region="ap-guangzhou",
-    )
-
-
-@pytest.fixture
-def sample_file_info() -> FileInfo:
-    """Create sample file info for testing."""
-    return FileInfo(
-        bucket="test-bucket",
-        key="logs/test.log",
-        size=1024,
-        last_modified=datetime(2023, 6, 1),
-        provider="tencent",
     )
 
 

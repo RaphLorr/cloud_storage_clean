@@ -1,7 +1,7 @@
 """Structured logging configuration using structlog."""
 
+import logging
 import sys
-from typing import Any
 
 import structlog
 from structlog.types import FilteringBoundLogger
@@ -52,7 +52,3 @@ def get_logger(name: str) -> FilteringBoundLogger:
         Configured structlog logger.
     """
     return structlog.get_logger(name)
-
-
-# Import logging module for level constants
-import logging

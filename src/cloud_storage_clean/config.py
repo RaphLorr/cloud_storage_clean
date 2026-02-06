@@ -1,6 +1,5 @@
 """Configuration management with Pydantic Settings."""
 
-from pathlib import Path
 from typing import Optional
 
 from pydantic import Field, SecretStr
