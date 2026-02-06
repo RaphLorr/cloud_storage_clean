@@ -56,12 +56,10 @@ Edit `.env` with your credentials:
 # Tencent COS
 TENCENT_SECRET_ID=your_secret_id
 TENCENT_SECRET_KEY=your_secret_key
-TENCENT_REGION=ap-guangzhou
 
 # Aliyun OSS
 ALIYUN_ACCESS_KEY_ID=your_access_key_id
 ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
-ALIYUN_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
 ```
 
 ### Security Notes
@@ -143,6 +141,34 @@ cloud-storage-clean list-buckets PROVIDER [OPTIONS]
 | Option | Description |
 |--------|-------------|
 | `--pattern REGEX` | Regex pattern to filter bucket names |
+| `--verbose` | Enable debug-level logging |
+
+#### `list-files` command
+
+```bash
+cloud-storage-clean list-files PROVIDER BUCKET_PATTERN FILE_PATTERN BEFORE [OPTIONS]
+```
+
+Lists files matching patterns and time criteria without deleting them. Arguments and options are the same as `clean` (minus `--dry-run`, `--no-confirm`, `--log-file`).
+
+#### `stat` command
+
+```bash
+cloud-storage-clean stat PROVIDER BUCKET_PATTERN BEFORE [OPTIONS]
+```
+
+Shows file type statistics (by extension) for files modified before a given date, with per-bucket and total breakdowns.
+
+**Arguments:**
+- `PROVIDER` - Cloud provider: `tencent` or `aliyun`
+- `BUCKET_PATTERN` - Regex pattern for bucket names
+- `BEFORE` - Date cutoff (format: `YYYY-MM-DD`)
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--timezone TZ`, `--tz TZ` | Timezone for date interpretation |
 | `--verbose` | Enable debug-level logging |
 
 ## Timezone Handling
@@ -257,7 +283,7 @@ cloud-storage-clean clean tencent "logs-.*" "*.log" $(date -d '30 days ago' +%Y-
 **Solution**:
 - Verify credentials in `.env` file
 - Check that credentials have necessary permissions
-- Ensure region/endpoint is correct
+- Ensure credentials have access to the bucket's region
 
 ### Rate Limit Errors
 

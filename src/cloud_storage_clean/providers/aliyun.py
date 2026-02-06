@@ -45,6 +45,7 @@ class AliyunProvider(CloudStorageProvider):
         )
         self.service = oss2.Service(auth, config.endpoint)
         self.auth = auth
+        self._bucket_endpoints: dict[str, str] = {}
         logger.info("aliyun_provider_initialized", endpoint=config.endpoint)
 
     def list_buckets(self) -> Iterator[BucketInfo]:
@@ -54,6 +55,9 @@ class AliyunProvider(CloudStorageProvider):
             result = self.service.list_buckets()
 
             for bucket in result.buckets:
+                if bucket.location:
+                    endpoint = f"https://{bucket.location}.aliyuncs.com"
+                    self._bucket_endpoints[bucket.name] = endpoint
                 yield BucketInfo(
                     name=bucket.name,
                     creation_date=datetime.fromtimestamp(bucket.creation_date),
@@ -68,10 +72,19 @@ class AliyunProvider(CloudStorageProvider):
         except OssError as e:
             raise CloudStorageError(f"OSS error listing buckets: {str(e)}")
 
+    def _get_bucket_endpoint(self, bucket: str) -> str:
+        """Get the correct endpoint for a bucket.
+
+        Uses cached location from list_buckets if available,
+        falls back to the configured default endpoint.
+        """
+        return self._bucket_endpoints.get(bucket, self.config.endpoint)
+
     def list_files(self, bucket: str, prefix: str = "") -> Iterator[FileInfo]:
         """List files in a bucket with pagination."""
         try:
-            bucket_obj = oss2.Bucket(self.auth, self.config.endpoint, bucket)
+            endpoint = self._get_bucket_endpoint(bucket)
+            bucket_obj = oss2.Bucket(self.auth, endpoint, bucket)
             marker = ""
             has_more = True
 
@@ -116,7 +129,8 @@ class AliyunProvider(CloudStorageProvider):
             raise ValueError("Aliyun OSS batch delete supports max 1000 keys")
 
         results: list[DeletionResult] = []
-        bucket_obj = oss2.Bucket(self.auth, self.config.endpoint, bucket)
+        endpoint = self._get_bucket_endpoint(bucket)
+        bucket_obj = oss2.Bucket(self.auth, endpoint, bucket)
 
         try:
             self.rate_limiter.acquire()

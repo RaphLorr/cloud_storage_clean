@@ -19,12 +19,10 @@ Create a `.env` file in the project root:
 # Tencent COS
 TENCENT_SECRET_ID=your_secret_id
 TENCENT_SECRET_KEY=your_secret_key
-TENCENT_REGION=ap-guangzhou
 
 # Aliyun OSS
 ALIYUN_ACCESS_KEY_ID=your_access_key_id
 ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
-ALIYUN_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
 ```
 
 ## Basic Usage

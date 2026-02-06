@@ -41,6 +41,8 @@ class TencentProvider(CloudStorageProvider):
             Scheme=config.scheme,
         )
         self.client = CosS3Client(cos_config)
+        self._bucket_regions: dict[str, str] = {}
+        self._region_clients: dict[str, CosS3Client] = {config.region: self.client}
         logger.info("tencent_provider_initialized", region=config.region)
 
     def list_buckets(self) -> Iterator[BucketInfo]:
@@ -50,13 +52,16 @@ class TencentProvider(CloudStorageProvider):
             response = self.client.list_buckets()
 
             for bucket in response.get("Buckets", {}).get("Bucket", []):
+                location = bucket.get("Location")
+                if location:
+                    self._bucket_regions[bucket["Name"]] = location
                 yield BucketInfo(
                     name=bucket["Name"],
                     creation_date=datetime.fromisoformat(
                         bucket["CreationDate"].replace("Z", "+00:00")
                     ),
                     provider="tencent",
-                    region=bucket.get("Location"),
+                    region=location,
                 )
 
         except CosServiceError as e:
@@ -66,15 +71,33 @@ class TencentProvider(CloudStorageProvider):
         except CosClientError as e:
             raise CloudStorageError(f"Client error listing buckets: {str(e)}")
 
+    def _get_client(self, bucket: str) -> CosS3Client:
+        """Get a CosS3Client for the bucket's region.
+
+        Uses cached region from list_buckets if available,
+        falls back to the default client.
+        """
+        region = self._bucket_regions.get(bucket, self.config.region)
+        if region not in self._region_clients:
+            cos_config = CosConfig(
+                Region=region,
+                SecretId=self.config.secret_id.get_secret_value(),
+                SecretKey=self.config.secret_key.get_secret_value(),
+                Scheme=self.config.scheme,
+            )
+            self._region_clients[region] = CosS3Client(cos_config)
+        return self._region_clients[region]
+
     def list_files(self, bucket: str, prefix: str = "") -> Iterator[FileInfo]:
         """List files in a bucket with pagination."""
         marker = ""
         has_more = True
+        client = self._get_client(bucket)
 
         try:
             while has_more:
                 self.rate_limiter.acquire()
-                response = self.client.list_objects(
+                response = client.list_objects(
                     Bucket=bucket, Prefix=prefix, Marker=marker, MaxKeys=1000
                 )
 
@@ -119,9 +142,10 @@ class TencentProvider(CloudStorageProvider):
 
         try:
             self.rate_limiter.acquire()
+            client = self._get_client(bucket)
 
             objects = {"Object": [{"Key": key} for key in keys]}
-            response = self.client.delete_objects(Bucket=bucket, Delete=objects)
+            response = client.delete_objects(Bucket=bucket, Delete=objects)
 
             # Track successful deletions
             deleted = {obj["Key"] for obj in response.get("Deleted", [])}

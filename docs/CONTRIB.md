@@ -87,8 +87,6 @@ All environment variables are defined in `.env.example` as the single source of 
 |----------|----------|---------|-------------|
 | `TENCENT_SECRET_ID` | Yes* | - | Tencent Cloud API Secret ID (obtain from [API Key Management](https://console.cloud.tencent.com/cam/capi)) |
 | `TENCENT_SECRET_KEY` | Yes* | - | Tencent Cloud API Secret Key |
-| `TENCENT_REGION` | No | `ap-guangzhou` | Tencent COS region (e.g., `ap-guangzhou`, `ap-shanghai`, `ap-beijing`) |
-| `TENCENT_SCHEME` | No | `https` | Protocol scheme (`https` or `http`) |
 
 *Required only if using Tencent COS provider
 
@@ -98,7 +96,6 @@ All environment variables are defined in `.env.example` as the single source of 
 |----------|----------|---------|-------------|
 | `ALIYUN_ACCESS_KEY_ID` | Yes* | - | Aliyun AccessKey ID (obtain from [RAM Console](https://ram.console.aliyun.com/)) |
 | `ALIYUN_ACCESS_KEY_SECRET` | Yes* | - | Aliyun AccessKey Secret |
-| `ALIYUN_ENDPOINT` | No | `oss-cn-hangzhou.aliyuncs.com` | Aliyun OSS endpoint (e.g., `oss-cn-hangzhou.aliyuncs.com`, `oss-cn-shanghai.aliyuncs.com`) |
 
 *Required only if using Aliyun OSS provider
 
@@ -117,7 +114,6 @@ All environment variables are defined in `.env.example` as the single source of 
 ```bash
 TENCENT_SECRET_ID=AKIDxxxxxxxxxxxxxxxxxxxxxx
 TENCENT_SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TENCENT_REGION=ap-guangzhou
 LOG_FILE=logs/cleanup.log
 VERBOSE=true
 ```
@@ -126,7 +122,6 @@ VERBOSE=true
 ```bash
 ALIYUN_ACCESS_KEY_ID=LTAI5xxxxxxxxxxxxx
 ALIYUN_ACCESS_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ALIYUN_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
 LOG_FILE=logs/cleanup.log
 ```
 
@@ -135,12 +130,10 @@ LOG_FILE=logs/cleanup.log
 # Tencent COS
 TENCENT_SECRET_ID=AKIDxxxxxxxxxxxxxxxxxxxxxx
 TENCENT_SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TENCENT_REGION=ap-guangzhou
 
 # Aliyun OSS
 ALIYUN_ACCESS_KEY_ID=LTAI5xxxxxxxxxxxxx
 ALIYUN_ACCESS_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ALIYUN_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
 
 # Application
 LOG_FILE=logs/cleanup.log

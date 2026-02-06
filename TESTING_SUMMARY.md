@@ -5,7 +5,7 @@ Comprehensive test suite for the Cloud Storage Cleanup Tool.
 ## Test Statistics
 
 ### Unit Tests
-- **41 tests** - All passing ✅
+- **54 tests** - All passing ✅
 - **Coverage**: 86%+ for core business logic
 - **Runtime**: ~2 seconds
 - **Dependencies**: None (mocked)
@@ -71,11 +71,11 @@ open htmlcov/index.html
 
 | Component | Unit Tests | Integration Tests | Coverage |
 |-----------|------------|-------------------|----------|
-| **Data Models** | ✅ 6 tests | N/A | 98% |
+| **Data Models** | ✅ 8 tests | N/A | 98% |
 | **Validators** | ✅ 9 tests | N/A | 100% |
 | **Rate Limiter** | ✅ 8 tests | ✅ 2 tests | 100% |
-| **Scanner** | ✅ 8 tests | ✅ 9 tests | 100% |
-| **Deleter** | ✅ 10 tests | N/A | 98% |
+| **Scanner** | ✅ 17 tests | ✅ 9 tests | 100% |
+| **Deleter** | ✅ 12 tests | N/A | 98% |
 | **Tencent Provider** | Mocked | ✅ 10 tests | 86% |
 | **Aliyun Provider** | Mocked | ✅ 11 tests | 86% |
 | **CLI** | N/A | ⏳ TODO | 0% |
@@ -196,7 +196,7 @@ env:
 
 ### Unit Tests
 ```
-Total: 41 tests
+Total: 54 tests
 Time: ~2 seconds
 Memory: <50 MB
 ```
@@ -316,7 +316,7 @@ No files found for summary test
 
 Before considering testing complete:
 
-- [x] 40+ unit tests passing
+- [x] 50+ unit tests passing
 - [x] 80%+ code coverage for core logic
 - [x] Integration tests for both providers
 - [x] Scanner integration tests

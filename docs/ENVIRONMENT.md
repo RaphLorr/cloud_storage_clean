@@ -68,48 +68,6 @@ The application is configured entirely through environment variables defined in 
 
 ---
 
-### TENCENT_REGION
-
-- **Required**: No
-- **Default**: `ap-guangzhou`
-- **Format**: String (region code)
-- **Example**: `TENCENT_REGION=ap-shanghai`
-
-**Description**: Tencent COS region where buckets are located.
-
-**Common Values**:
-- `ap-guangzhou` - Guangzhou, China
-- `ap-shanghai` - Shanghai, China
-- `ap-beijing` - Beijing, China
-- `ap-nanjing` - Nanjing, China
-- `ap-chengdu` - Chengdu, China
-- `ap-chongqing` - Chongqing, China
-- `ap-singapore` - Singapore
-- `ap-hongkong` - Hong Kong, China
-- `na-siliconvalley` - Silicon Valley, USA
-- `na-ashburn` - Virginia, USA
-
-**Full List**: https://cloud.tencent.com/document/product/436/6224
-
----
-
-### TENCENT_SCHEME
-
-- **Required**: No
-- **Default**: `https`
-- **Format**: String (`https` or `http`)
-- **Example**: `TENCENT_SCHEME=https`
-
-**Description**: Protocol scheme for Tencent COS API requests.
-
-**Valid Values**:
-- `https` - Secure HTTPS (recommended)
-- `http` - Unencrypted HTTP (not recommended)
-
-**Recommendation**: Always use `https` in production for security.
-
----
-
 ## Aliyun OSS Configuration
 
 ### ALIYUN_ACCESS_KEY_ID
@@ -152,29 +110,6 @@ The application is configured entirely through environment variables defined in 
 - Masked in logs automatically (Pydantic SecretStr)
 - Cannot be retrieved after creation (must create new if lost)
 - If compromised, disable and create new key immediately
-
----
-
-### ALIYUN_ENDPOINT
-
-- **Required**: No
-- **Default**: `oss-cn-hangzhou.aliyuncs.com`
-- **Format**: String (endpoint URL)
-- **Example**: `ALIYUN_ENDPOINT=oss-cn-shanghai.aliyuncs.com`
-
-**Description**: Aliyun OSS endpoint for the region where buckets are located.
-
-**Common Values**:
-- `oss-cn-hangzhou.aliyuncs.com` - Hangzhou, China
-- `oss-cn-shanghai.aliyuncs.com` - Shanghai, China
-- `oss-cn-beijing.aliyuncs.com` - Beijing, China
-- `oss-cn-shenzhen.aliyuncs.com` - Shenzhen, China
-- `oss-cn-hongkong.aliyuncs.com` - Hong Kong, China
-- `oss-ap-southeast-1.aliyuncs.com` - Singapore
-- `oss-us-west-1.aliyuncs.com` - US West (Silicon Valley)
-- `oss-us-east-1.aliyuncs.com` - US East (Virginia)
-
-**Full List**: https://help.aliyun.com/document_detail/31837.html
 
 ---
 
@@ -314,13 +249,6 @@ LOG_FILE=~/cloud-storage-cleanup.log
 # Tencent COS Configuration
 TENCENT_SECRET_ID=AKIDxxxxxxxxxxxxxxxxxxxxxx
 TENCENT_SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TENCENT_REGION=ap-guangzhou
-TENCENT_SCHEME=https
-
-# Aliyun OSS Configuration (not used)
-ALIYUN_ACCESS_KEY_ID=
-ALIYUN_ACCESS_KEY_SECRET=
-ALIYUN_ENDPOINT=
 
 # Application Configuration
 LOG_FILE=logs/cleanup.log
@@ -332,16 +260,9 @@ BATCH_SIZE=100
 ### Example 2: Aliyun OSS Development
 
 ```bash
-# Tencent COS Configuration (not used)
-TENCENT_SECRET_ID=
-TENCENT_SECRET_KEY=
-TENCENT_REGION=ap-guangzhou
-TENCENT_SCHEME=https
-
 # Aliyun OSS Configuration
 ALIYUN_ACCESS_KEY_ID=LTAI5xxxxxxxxxxxxx
 ALIYUN_ACCESS_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ALIYUN_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
 
 # Application Configuration
 LOG_FILE=logs/dev-cleanup.log
@@ -356,13 +277,10 @@ BATCH_SIZE=50
 # Tencent COS Configuration
 TENCENT_SECRET_ID=AKIDxxxxxxxxxxxxxxxxxxxxxx
 TENCENT_SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TENCENT_REGION=ap-shanghai
-TENCENT_SCHEME=https
 
 # Aliyun OSS Configuration
 ALIYUN_ACCESS_KEY_ID=LTAI5xxxxxxxxxxxxx
 ALIYUN_ACCESS_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ALIYUN_ENDPOINT=oss-cn-shanghai.aliyuncs.com
 
 # Application Configuration
 LOG_FILE=logs/multicloud-cleanup.log

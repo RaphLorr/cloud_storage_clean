@@ -222,17 +222,6 @@ grep "TENCENT_SECRET_KEY" .env
 
 ---
 
-**Issue**: `AuthenticationError: Region not accessible`
-
-**Fix:**
-```bash
-# Update region in .env
-TENCENT_REGION=ap-guangzhou  # or your correct region
-
-# Test connection
-cloud-storage-clean list-buckets tencent --verbose
-```
-
 ### Rate Limiting Issues
 
 **Issue**: `RateLimitError: Too many requests`

@@ -22,12 +22,10 @@ Create `.env` file in project root:
 # Tencent COS
 TENCENT_SECRET_ID=AKIDxxxxxxxxxxxxx
 TENCENT_SECRET_KEY=xxxxxxxxxxxxx
-TENCENT_REGION=ap-guangzhou
 
 # Aliyun OSS
 ALIYUN_ACCESS_KEY_ID=LTAIxxxxxxxxxxxxx
 ALIYUN_ACCESS_KEY_SECRET=xxxxxxxxxxxxx
-ALIYUN_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
 ```
 
 ### 3. Run Basic Tests
@@ -209,9 +207,8 @@ BucketNotFoundError: Bucket not found: your-test-bucket
 
 **Solutions:**
 1. **Wrong bucket name**: Verify spelling and check cloud console
-2. **Wrong region**: For Tencent, ensure bucket is in TENCENT_REGION
-3. **Wrong endpoint**: For Aliyun, verify endpoint matches bucket location
-4. **No permissions**: Check IAM permissions include `GetBucket`
+2. **No permissions**: Check IAM permissions include `GetBucket`
+3. **Credentials expired**: Verify credentials are still active
 
 ### Issue: Access Denied
 
