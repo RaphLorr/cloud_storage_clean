@@ -48,6 +48,16 @@ class DeletionResult:
 
 
 @dataclass(frozen=True)
+class FileTypeSummary:
+    """Summary of files grouped by extension within a bucket."""
+
+    bucket: str
+    extension: str
+    file_count: int
+    total_size: int
+
+
+@dataclass(frozen=True)
 class DeletionSummary:
     """Summary of planned deletion operation."""
 
@@ -57,7 +67,8 @@ class DeletionSummary:
     size_by_bucket: dict[str, int]
     provider: str
 
-    def format_size(self, size_bytes: int) -> str:
+    @staticmethod
+    def format_size(size_bytes: int) -> str:
         """Format size in bytes to human-readable format."""
         for unit in ["B", "KB", "MB", "GB", "TB"]:
             if size_bytes < 1024.0:
