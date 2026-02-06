@@ -1,307 +1,169 @@
 # Cloud Storage Cleanup Tool
 
-A Python CLI tool to safely delete files from Tencent COS and Aliyun OSS based on bucket patterns (regex), file patterns (glob), and time criteria.
+清理腾讯云 COS / 阿里云 OSS 中的废弃文件，释放存储空间，降低云存储费用。
 
-## Features
+## 为什么需要这个工具？
 
-- **Multi-Provider Support**: Works with Tencent COS and Aliyun OSS
-- **Pattern Matching**: Regex for buckets, glob patterns for files
-- **Time-Based Filtering**: Delete files modified before a specific date
-- **Safe Operations**: Interactive confirmation with detailed summary
-- **Batch Deletion**: Efficient batch operations (up to 1000 files per batch)
-- **Rate Limiting**: Respects API limits to avoid throttling
-- **Comprehensive Logging**: Structured JSON logging for audit trails
-- **Memory Efficient**: Lazy evaluation with iterators
+云存储按量计费，长期积累的过期日志、临时文件、旧备份等会持续产生费用。手动清理耗时且容易遗漏，这个工具可以：
 
-## Installation
+- **按时间批量清理** — 删除指定日期之前的旧文件
+- **按文件类型筛选** — 只清理 `*.log`、`*.tmp`、`*.mp4` 等指定类型
+- **跨 Bucket 操作** — 用正则一次匹配多个 Bucket，无需逐个处理
+- **先看再删** — `--dry-run` 预览要删除的文件和大小，确认后再执行
+- **自动识别跨区域 Bucket** — 无需手动配置 region/endpoint
 
-### Prerequisites
+## 快速开始
 
-- Python 3.11 or higher
-- Poetry (recommended) or pip
-
-### Using Poetry
+### 安装
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd cloud_storage_clean
-
-# Install dependencies
-poetry install
-
-# Activate virtual environment
-poetry shell
-```
-
-### Using pip
-
-```bash
+python3 -m venv venv && source venv/bin/activate
 pip install -e .
 ```
 
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the project root:
+### 配置凭证
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your credentials:
+编辑 `.env`，填入云厂商密钥（只需要你用到的那个）：
 
 ```bash
-# Tencent COS
+# 腾讯云 COS
 TENCENT_SECRET_ID=your_secret_id
 TENCENT_SECRET_KEY=your_secret_key
 
-# Aliyun OSS
+# 阿里云 OSS
 ALIYUN_ACCESS_KEY_ID=your_access_key_id
 ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
 ```
 
-### Security Notes
-
-- **Never commit `.env` files** to version control
-- Use environment variables for production deployments
-- Credentials are masked in logs using Pydantic SecretStr
-
-## Usage
-
-### List Buckets
-
-Explore available buckets before deleting:
+### 典型工作流
 
 ```bash
-# List all buckets
+# 1. 先看看有哪些 Bucket
 cloud-storage-clean list-buckets tencent
 
-# Filter buckets with regex
-cloud-storage-clean list-buckets tencent --pattern "test-.*"
+# 2. 统计一下各类文件占了多少空间
+cloud-storage-clean stat tencent ".*" 2025-01-01
 
-# List Aliyun buckets
-cloud-storage-clean list-buckets aliyun
+# 3. 预览要清理的文件（不会真删）
+cloud-storage-clean clean tencent "test-.*" "*.log" 2025-01-01 --dry-run
+
+# 4. 确认没问题，执行清理
+cloud-storage-clean clean tencent "test-.*" "*.log" 2025-01-01
 ```
 
-### Delete Files
+## 命令参考
 
-Delete files matching specific criteria:
+### `stat` — 查看存储占用
+
+统计指定日期前各类文件的数量和大小，帮你找到最值得清理的目标：
 
 ```bash
-# Basic deletion with confirmation
-cloud-storage-clean clean tencent "test-.*" "*.log" 2024-01-01
+cloud-storage-clean stat PROVIDER BUCKET_PATTERN BEFORE [OPTIONS]
 
-# Preview with dry-run (recommended first step)
-cloud-storage-clean clean tencent "test-.*" "*.log" 2024-01-01 --dry-run
+# 示例：查看所有 Bucket 中 2025 年前的文件分布
+cloud-storage-clean stat aliyun ".*" 2025-01-01
 
-# With logging
-cloud-storage-clean clean tencent "test-.*" "*.log" 2024-01-01 --log-file cleanup.log
-
-# Skip confirmation (dangerous!)
-cloud-storage-clean clean tencent "test-.*" "*.log" 2024-01-01 --no-confirm
+# 只看测试环境
+cloud-storage-clean stat tencent "test-.*" 2024-06-01
 ```
 
-### Command Options
+### `list-files` — 列出匹配文件
 
-#### `clean` command
+列出符合条件的文件明细，不做删除：
+
+```bash
+cloud-storage-clean list-files PROVIDER BUCKET_PATTERN FILE_PATTERN BEFORE [OPTIONS]
+
+# 示例：查看测试 Bucket 中的旧视频文件
+cloud-storage-clean list-files tencent "test-.*" "*.mp4" 2025-01-01
+```
+
+### `clean` — 批量清理文件
+
+删除匹配的文件，默认会显示摘要并要求确认：
 
 ```bash
 cloud-storage-clean clean PROVIDER BUCKET_PATTERN FILE_PATTERN BEFORE [OPTIONS]
 ```
 
-**Arguments:**
-- `PROVIDER` - Cloud provider: `tencent` or `aliyun`
-- `BUCKET_PATTERN` - Regex pattern for bucket names (e.g., `"test-.*"`)
-- `FILE_PATTERN` - Glob pattern for file names (e.g., `"*.log"`, `"temp/*"`)
-- `BEFORE` - Delete files modified before this date (format: `YYYY-MM-DD`)
+| 参数 | 说明 |
+|------|------|
+| `PROVIDER` | 云厂商：`tencent` 或 `aliyun` |
+| `BUCKET_PATTERN` | Bucket 名称正则（如 `"test-.*"`） |
+| `FILE_PATTERN` | 文件名 glob 模式（如 `"*.log"`、`"temp/*"`） |
+| `BEFORE` | 删除此日期之前的文件（格式 `YYYY-MM-DD`） |
 
-**Options:**
+| 选项 | 说明 |
+|------|------|
+| `--dry-run` | 只预览，不实际删除 |
+| `--tz TZ` | 指定时区（如 `Asia/Shanghai`），默认使用本机时区 |
+| `--no-confirm` | 跳过确认直接删除（慎用） |
+| `--log-file PATH` | 将操作日志写入 JSON 文件 |
+| `--verbose` | 输出调试级别日志 |
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Simulate deletion without actually deleting files (preview mode) |
-| `--timezone TZ`, `--tz TZ` | Timezone for date interpretation (e.g., `Asia/Shanghai`, `UTC`). Default: local timezone |
-| `--no-confirm` | Skip confirmation prompt (dangerous) |
-| `--log-file PATH` | Path to log file for structured JSON logging |
-| `--verbose` | Enable debug-level logging |
-
-#### `list-buckets` command
-
-```bash
-cloud-storage-clean list-buckets PROVIDER [OPTIONS]
-```
-
-**Arguments:**
-- `PROVIDER` - Cloud provider: `tencent` or `aliyun`
-
-**Options:**
-
-| Option | Description |
-|--------|-------------|
-| `--pattern REGEX` | Regex pattern to filter bucket names |
-| `--verbose` | Enable debug-level logging |
-
-#### `list-files` command
+### `list-buckets` — 列出 Bucket
 
 ```bash
-cloud-storage-clean list-files PROVIDER BUCKET_PATTERN FILE_PATTERN BEFORE [OPTIONS]
+cloud-storage-clean list-buckets PROVIDER [--pattern REGEX]
 ```
 
-Lists files matching patterns and time criteria without deleting them. Arguments and options are the same as `clean` (minus `--dry-run`, `--no-confirm`, `--log-file`).
+## 使用场景
 
-#### `stat` command
-
-```bash
-cloud-storage-clean stat PROVIDER BUCKET_PATTERN BEFORE [OPTIONS]
-```
-
-Shows file type statistics (by extension) for files modified before a given date, with per-bucket and total breakdowns.
-
-**Arguments:**
-- `PROVIDER` - Cloud provider: `tencent` or `aliyun`
-- `BUCKET_PATTERN` - Regex pattern for bucket names
-- `BEFORE` - Date cutoff (format: `YYYY-MM-DD`)
-
-**Options:**
-
-| Option | Description |
-|--------|-------------|
-| `--timezone TZ`, `--tz TZ` | Timezone for date interpretation |
-| `--verbose` | Enable debug-level logging |
-
-## Timezone Handling
-
-When you specify a date like `2025-01-01`, the tool needs to know which timezone you mean:
-
-**Default behavior (no `--timezone` flag):**
-- Uses your computer's local timezone
-- For Chinese users with CST timezone: `2025-01-01` = Beijing time 2025-01-01 00:00:00
-- For US users with EST timezone: `2025-01-01` = New York time 2025-01-01 00:00:00
-
-**Recommended for Chinese users:**
-```bash
-# Explicitly specify Beijing time (most reliable)
-cloud-storage-clean clean tencent "bucket" "*.log" 2025-01-01 --timezone Asia/Shanghai
-```
-
-**Common timezones:**
-- `Asia/Shanghai` - Beijing/Shanghai (UTC+8)
-- `Asia/Hong_Kong` - Hong Kong (UTC+8)
-- `UTC` - Coordinated Universal Time
-- `America/New_York` - New York (UTC-5/-4)
-- `Europe/London` - London (UTC+0/+1)
-
-**Important:** If you don't specify `--timezone` and your colleague runs the same command on a computer in a different timezone, they will get different results!
-
-## Examples
-
-### Example 1: Safe workflow with dry-run
-
-```bash
-# Step 1: Preview what would be deleted
-cloud-storage-clean clean tencent "test-env-.*" "*.log" 2024-01-01 --dry-run
-
-# Step 2: Review the output, then run for real
-cloud-storage-clean clean tencent "test-env-.*" "*.log" 2024-01-01 --log-file cleanup.log
-```
-
-### Example 2: Clean up test environment logs
+### 清理测试环境日志
 
 ```bash
 cloud-storage-clean clean tencent "test-env-.*" "*.log" 2024-01-01 --log-file cleanup.log
 ```
 
-### Example 3: Remove temporary files from staging
-
-```bash
-cloud-storage-clean clean aliyun "staging-.*" "temp/*" 2024-06-01 --dry-run
-```
-
-### Example 4: Delete old backups
+### 删除过期备份
 
 ```bash
 cloud-storage-clean clean tencent "backup-.*" "backup-*.tar.gz" 2023-01-01
 ```
 
-### Example 5: Using timezone (for Chinese users)
+### 清理 staging 临时文件
 
 ```bash
-# Explicitly specify Beijing time
-cloud-storage-clean clean tencent "test-.*" "*.log" 2025-01-01 --timezone Asia/Shanghai --dry-run
-
-# Or use short form
-cloud-storage-clean clean tencent "test-.*" "*.log" 2025-01-01 --tz Asia/Shanghai --dry-run
-
-# Without --timezone: uses your computer's local timezone (CST for Chinese users)
-cloud-storage-clean clean tencent "test-.*" "*.log" 2025-01-01 --dry-run
+cloud-storage-clean clean aliyun "staging-.*" "temp/*" 2024-06-01
 ```
 
-### Example 6: Automated cleanup (with logging)
+### 定时清理脚本（cron）
 
 ```bash
-# Daily cleanup script with logging
 cloud-storage-clean clean tencent "logs-.*" "*.log" $(date -d '30 days ago' +%Y-%m-%d) \
-  --timezone Asia/Shanghai \
+  --tz Asia/Shanghai \
   --log-file logs/cleanup-$(date +%Y%m%d).log \
   --no-confirm
 ```
 
-## Safety Features
+## 安全机制
 
-1. **Interactive Confirmation**: Displays detailed summary before deletion
-   - Total file count and size
-   - Breakdown by bucket
-   - Provider information
+- **确认提示** — 删除前显示文件数量、总大小、Bucket 分布，需手动确认
+- **Dry-run 模式** — `--dry-run` 模拟整个流程但不实际删除任何文件
+- **操作日志** — 所有删除操作写入结构化 JSON 日志，便于审计
+- **错误隔离** — 单个文件删除失败不会中断整个批次
 
-2. **Audit Trail**: All operations logged with timestamps
-   - Structured JSON format for machine parsing
-   - Human-readable console output
+## 时区说明
 
-3. **Pattern Validation**: Validates regex and glob patterns before execution
+日期参数默认使用本机时区。团队协作时建议显式指定，避免不同机器结果不一致：
 
-4. **Rate Limiting**: Token bucket algorithm prevents API throttling
+```bash
+cloud-storage-clean clean tencent "test-.*" "*.log" 2025-01-01 --tz Asia/Shanghai
+```
 
-5. **Error Isolation**: Failed deletions don't stop the entire process
+常用时区：`Asia/Shanghai`（北京时间）、`UTC`、`America/New_York`
 
-## Architecture
+## 故障排查
 
-### Core Components
-
-- **Providers**: Abstract interface with Tencent and Aliyun implementations
-- **Scanner**: Lazy evaluation of buckets and files with pattern matching
-- **Deleter**: Safe deletion orchestration with batch operations
-- **CLI**: Typer-based interface with Rich formatting
-
-## Troubleshooting
-
-### Authentication Errors
-
-**Problem**: `AuthenticationError: Authentication failed`
-
-**Solution**:
-- Verify credentials in `.env` file
-- Check that credentials have necessary permissions
-- Ensure credentials have access to the bucket's region
-
-### Rate Limit Errors
-
-**Problem**: `RateLimitError: Rate limit exceeded`
-
-**Solution**:
-- Reduce `RATE_LIMIT` in `.env` (default: 100)
-- Add delays between operations
-- Contact provider to increase limits
-
-### Bucket Not Found
-
-**Problem**: `BucketNotFoundError: Bucket not found`
-
-**Solution**:
-- Verify bucket name is correct
-- Check that bucket exists in the specified region
-- Ensure credentials have access to the bucket
+| 错误 | 原因 | 解决 |
+|------|------|------|
+| `AuthenticationError` | 凭证无效或权限不足 | 检查 `.env` 中的密钥，确认 IAM 权限 |
+| `RateLimitError` | API 调用频率超限 | 在 `.env` 中调低 `RATE_LIMIT`（默认 100） |
+| `BucketNotFoundError` | Bucket 不存在 | 用 `list-buckets` 确认名称，检查凭证权限 |
 
 ## License
 
