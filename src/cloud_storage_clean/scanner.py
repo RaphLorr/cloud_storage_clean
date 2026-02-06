@@ -1,9 +1,11 @@
 """Bucket and file scanning with filtering."""
 
+from collections import defaultdict
 from datetime import datetime
+from pathlib import PurePosixPath
 from typing import Iterator, Pattern
 
-from cloud_storage_clean.models import DeletionFilter, FileInfo
+from cloud_storage_clean.models import DeletionFilter, FileInfo, FileTypeSummary
 from cloud_storage_clean.providers.base import CloudStorageProvider
 from cloud_storage_clean.utils.logging import get_logger
 from cloud_storage_clean.utils.validators import (
@@ -94,6 +96,66 @@ class BucketScanner:
             total_files=total_files,
         )
 
+    def scan_file_types(
+        self, bucket_pattern: str, before_date: datetime
+    ) -> Iterator[FileTypeSummary]:
+        """Scan files and group by extension per bucket.
+
+        Args:
+            bucket_pattern: Regex pattern for bucket names.
+            before_date: Only include files modified before this date.
+
+        Yields:
+            FileTypeSummary for each (bucket, extension) combination.
+
+        Raises:
+            ValueError: If bucket_pattern is invalid.
+            CloudStorageError: If scanning fails.
+        """
+        bucket_regex = compile_regex(bucket_pattern)
+
+        logger.info(
+            "file_type_scan_started",
+            bucket_pattern=bucket_pattern,
+            before_date=before_date.isoformat(),
+        )
+
+        matched_buckets = 0
+
+        for bucket_info in self.provider.list_buckets():
+            if not matches_regex(bucket_info.name, bucket_regex):
+                continue
+
+            matched_buckets += 1
+            logger.info("bucket_matched", bucket=bucket_info.name)
+
+            # Aggregate by extension within this bucket
+            counts: dict[str, int] = defaultdict(int)
+            sizes: dict[str, int] = defaultdict(int)
+
+            for file_info in self.provider.list_files(bucket_info.name):
+                if file_info.last_modified >= before_date:
+                    continue
+
+                suffix = PurePosixPath(file_info.key).suffix
+                ext = suffix if suffix else "(no ext)"
+
+                counts[ext] += 1
+                sizes[ext] += file_info.size
+
+            for ext in sorted(counts.keys()):
+                yield FileTypeSummary(
+                    bucket=bucket_info.name,
+                    extension=ext,
+                    file_count=counts[ext],
+                    total_size=sizes[ext],
+                )
+
+        logger.info(
+            "file_type_scan_completed",
+            matched_buckets=matched_buckets,
+        )
+
 
 def create_deletion_summary(files: list[FileInfo], provider: str) -> dict[str, int | dict]:
     """Create summary statistics from files list.
@@ -105,8 +167,6 @@ def create_deletion_summary(files: list[FileInfo], provider: str) -> dict[str, i
     Returns:
         Dictionary with summary statistics.
     """
-    from collections import defaultdict
-
     files_by_bucket: dict[str, int] = defaultdict(int)
     size_by_bucket: dict[str, int] = defaultdict(int)
     total_size = 0
