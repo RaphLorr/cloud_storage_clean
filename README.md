@@ -248,40 +248,6 @@ cloud-storage-clean clean tencent "logs-.*" "*.log" $(date -d '30 days ago' +%Y-
 - **Deleter**: Safe deletion orchestration with batch operations
 - **CLI**: Typer-based interface with Rich formatting
 
-### Design Principles
-
-- **Immutability**: All data models use frozen dataclasses
-- **Lazy Evaluation**: Iterators prevent memory exhaustion
-- **Error Handling**: Comprehensive exception hierarchy
-- **Type Safety**: Full type hints with mypy checking
-
-## Development
-
-### Running Tests
-
-```bash
-# Run all tests with coverage
-pytest --cov=src/cloud_storage_clean --cov-report=html
-
-# Run specific test types
-pytest tests/unit/
-pytest tests/integration/
-pytest tests/e2e/
-```
-
-### Code Quality
-
-```bash
-# Format code
-black src/ tests/
-
-# Lint
-ruff check src/ tests/
-
-# Type check
-mypy src/
-```
-
 ## Troubleshooting
 
 ### Authentication Errors
@@ -311,31 +277,6 @@ mypy src/
 - Check that bucket exists in the specified region
 - Ensure credentials have access to the bucket
 
-## Security Considerations
-
-- **Credentials**: Never hardcode credentials in code
-- **Logging**: Credentials are automatically masked in logs
-- **Permissions**: Use least-privilege IAM policies
-- **Audit**: Review log files regularly
-- **Deletion**: Operations are irreversible - always review summaries
-
 ## License
 
 MIT License
-
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check existing issues for solutions
-- Review logs for detailed error messages
