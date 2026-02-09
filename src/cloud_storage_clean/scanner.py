@@ -49,11 +49,16 @@ class BucketScanner:
         validate_glob_pattern(deletion_filter.file_pattern)
         bucket_regex = compile_regex(deletion_filter.bucket_pattern)
 
+        # Validate exclude patterns
+        for ep in deletion_filter.exclude_patterns:
+            validate_glob_pattern(ep)
+
         logger.info(
             "scan_started",
             bucket_pattern=deletion_filter.bucket_pattern,
             file_pattern=deletion_filter.file_pattern,
             before_date=deletion_filter.before_date.isoformat(),
+            exclude_patterns=list(deletion_filter.exclude_patterns),
         )
 
         matched_buckets = 0
@@ -73,6 +78,13 @@ class BucketScanner:
             for file_info in self.provider.list_files(bucket_info.name):
                 # Apply file pattern filter
                 if not matches_glob(file_info.key, deletion_filter.file_pattern):
+                    continue
+
+                # Apply exclude patterns
+                if any(
+                    matches_glob(file_info.key, ep)
+                    for ep in deletion_filter.exclude_patterns
+                ):
                     continue
 
                 # Apply time filter
@@ -97,7 +109,10 @@ class BucketScanner:
         )
 
     def scan_file_types(
-        self, bucket_pattern: str, before_date: datetime
+        self,
+        bucket_pattern: str,
+        before_date: datetime,
+        exclude_patterns: tuple[str, ...] = (),
     ) -> Iterator[FileTypeSummary]:
         """Scan files and group by extension per bucket.
 
@@ -135,6 +150,11 @@ class BucketScanner:
 
             for file_info in self.provider.list_files(bucket_info.name):
                 if file_info.last_modified >= before_date:
+                    continue
+
+                if any(
+                    matches_glob(file_info.key, ep) for ep in exclude_patterns
+                ):
                     continue
 
                 suffix = PurePosixPath(file_info.key).suffix

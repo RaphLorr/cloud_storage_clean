@@ -372,3 +372,107 @@ def test_scanner_handles_timezone_aware_datetimes(mock_provider: Mock) -> None:
     # Should only return old.log (before 2025-01-01)
     assert len(results) == 1
     assert results[0].key == "old.log"
+
+
+def test_scanner_excludes_matching_files(mock_provider: Mock) -> None:
+    """Test that scanner excludes files matching exclude patterns."""
+    mock_provider.list_buckets.return_value = iter(
+        [BucketInfo("test-bucket", datetime(2023, 1, 1), "tencent")]
+    )
+    mock_provider.list_files.return_value = iter(
+        [
+            FileInfo("test-bucket", "app.ts", 100, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "large-video/clip.ts", 5000, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "Large-video/clip.ts", 6000, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "src/index.ts", 200, datetime(2023, 1, 1), "tencent"),
+        ]
+    )
+
+    scanner = BucketScanner(mock_provider)
+    deletion_filter = DeletionFilter(
+        bucket_pattern=".*",
+        file_pattern="*.ts",
+        before_date=datetime(2024, 1, 1),
+        provider="tencent",
+        exclude_patterns=("large-video/*.ts", "Large-video/*.ts"),
+    )
+
+    results = list(scanner.scan(deletion_filter))
+
+    assert len(results) == 2
+    keys = {r.key for r in results}
+    assert keys == {"app.ts", "src/index.ts"}
+
+
+def test_scanner_exclude_no_patterns(mock_provider: Mock) -> None:
+    """Test that scanner works normally with empty exclude patterns."""
+    mock_provider.list_buckets.return_value = iter(
+        [BucketInfo("test-bucket", datetime(2023, 1, 1), "tencent")]
+    )
+    mock_provider.list_files.return_value = iter(
+        [
+            FileInfo("test-bucket", "a.log", 100, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "b.log", 200, datetime(2023, 1, 1), "tencent"),
+        ]
+    )
+
+    scanner = BucketScanner(mock_provider)
+    deletion_filter = DeletionFilter(
+        bucket_pattern=".*",
+        file_pattern="*.log",
+        before_date=datetime(2024, 1, 1),
+        provider="tencent",
+        exclude_patterns=(),
+    )
+
+    results = list(scanner.scan(deletion_filter))
+    assert len(results) == 2
+
+
+def test_scanner_exclude_all_files(mock_provider: Mock) -> None:
+    """Test that all files can be excluded."""
+    mock_provider.list_buckets.return_value = iter(
+        [BucketInfo("test-bucket", datetime(2023, 1, 1), "tencent")]
+    )
+    mock_provider.list_files.return_value = iter(
+        [
+            FileInfo("test-bucket", "a.log", 100, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "b.log", 200, datetime(2023, 1, 1), "tencent"),
+        ]
+    )
+
+    scanner = BucketScanner(mock_provider)
+    deletion_filter = DeletionFilter(
+        bucket_pattern=".*",
+        file_pattern="*.log",
+        before_date=datetime(2024, 1, 1),
+        provider="tencent",
+        exclude_patterns=("*.log",),
+    )
+
+    results = list(scanner.scan(deletion_filter))
+    assert len(results) == 0
+
+
+def test_scan_file_types_with_exclude(mock_provider: Mock) -> None:
+    """Test that scan_file_types respects exclude patterns."""
+    mock_provider.list_buckets.return_value = iter(
+        [BucketInfo("test-bucket", datetime(2023, 1, 1), "tencent")]
+    )
+    mock_provider.list_files.return_value = iter(
+        [
+            FileInfo("test-bucket", "app.ts", 100, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "large-video/clip.ts", 5000, datetime(2023, 1, 1), "tencent"),
+            FileInfo("test-bucket", "data.json", 50, datetime(2023, 1, 1), "tencent"),
+        ]
+    )
+
+    scanner = BucketScanner(mock_provider)
+    results = list(scanner.scan_file_types(
+        ".*", datetime(2024, 1, 1), exclude_patterns=("large-video/*",)
+    ))
+
+    assert len(results) == 2
+    ts_summary = next(r for r in results if r.extension == ".ts")
+    assert ts_summary.file_count == 1
+    assert ts_summary.total_size == 100

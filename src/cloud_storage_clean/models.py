@@ -13,6 +13,7 @@ class DeletionFilter:
     file_pattern: str
     before_date: datetime
     provider: str
+    exclude_patterns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

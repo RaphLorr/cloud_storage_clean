@@ -64,6 +64,7 @@ def clean(
     before: str,
     no_confirm: bool = typer.Option(False, "--no-confirm"),
     dry_run: bool = typer.Option(False, "--dry-run"),
+    exclude: Optional[list[str]] = typer.Option(None, "--exclude", help="Glob pattern to exclude files (can be specified multiple times)"),
     tz: Optional[str] = typer.Option(None, "--timezone", "--tz", help="Timezone for date (e.g., 'Asia/Shanghai', 'UTC', default: local timezone)"),
     log_file: Optional[str] = typer.Option(None, "--log-file"),
     verbose: bool = typer.Option(False, "--verbose"),
@@ -77,13 +78,14 @@ def clean(
         before: Delete files modified before this date (YYYY-MM-DD)
         no_confirm: Skip confirmation prompt (dangerous)
         dry_run: Simulate deletion without actually deleting files
+        exclude: Glob patterns to exclude (can be repeated)
         tz: Timezone for the date (e.g., 'Asia/Shanghai' for Beijing time)
         log_file: Path to log file
         verbose: Enable verbose logging
 
     Example:
         cloud-storage-clean clean tencent "test-.*" "*.log" 2024-01-01 --dry-run
-        cloud-storage-clean clean tencent "test-.*" "*.log" 2024-01-01 --timezone Asia/Shanghai
+        cloud-storage-clean clean tencent ".*" "*.ts" 2025-01-01 --exclude "large-video/*.ts"
     """
     # Configure logging
     configure_logging(log_file, verbose)
@@ -120,11 +122,13 @@ def clean(
         provider_instance = create_provider(provider, app_config.rate_limit)
 
         # Create filter
+        exclude_patterns = tuple(exclude) if exclude else ()
         deletion_filter = DeletionFilter(
             bucket_pattern=bucket_pattern,
             file_pattern=file_pattern,
             before_date=before_date,
             provider=provider,
+            exclude_patterns=exclude_patterns,
         )
 
         logger.info("starting_scan", filter=deletion_filter)
@@ -247,6 +251,7 @@ def list_files(
     bucket_pattern: str,
     file_pattern: str,
     before: str,
+    exclude: Optional[list[str]] = typer.Option(None, "--exclude", help="Glob pattern to exclude files (can be specified multiple times)"),
     tz: Optional[str] = typer.Option(None, "--timezone", "--tz", help="Timezone for date (e.g., 'Asia/Shanghai', 'UTC', default: local timezone)"),
     verbose: bool = typer.Option(False, "--verbose"),
 ) -> None:
@@ -254,7 +259,7 @@ def list_files(
 
     Example:
         cloud-storage-clean list-files tencent "test-.*" "*.mp4" 2025-01-01
-        cloud-storage-clean list-files aliyun "prod-.*" "*.log" 2024-06-01 --timezone Asia/Shanghai
+        cloud-storage-clean list-files tencent ".*" "*.ts" 2025-01-01 --exclude "large-video/*.ts"
     """
     configure_logging(None, verbose)
     logger = get_logger(__name__)
@@ -286,11 +291,13 @@ def list_files(
         console.print("[cyan]Scanning for files...[/cyan]\n")
 
         scanner = BucketScanner(provider_instance)
+        exclude_patterns = tuple(exclude) if exclude else ()
         deletion_filter = DeletionFilter(
             bucket_pattern=bucket_pattern,
             file_pattern=file_pattern,
             before_date=before_date,
             provider=provider,
+            exclude_patterns=exclude_patterns,
         )
         files = list(scanner.scan(deletion_filter))
 
@@ -348,6 +355,7 @@ def stat(
     provider: str,
     bucket_pattern: str,
     before: str,
+    exclude: Optional[list[str]] = typer.Option(None, "--exclude", help="Glob pattern to exclude files (can be specified multiple times)"),
     tz: Optional[str] = typer.Option(None, "--timezone", "--tz", help="Timezone for date (e.g., 'Asia/Shanghai', 'UTC', default: local timezone)"),
     verbose: bool = typer.Option(False, "--verbose"),
 ) -> None:
@@ -358,7 +366,7 @@ def stat(
 
     Example:
         cloud-storage-clean stat tencent "test-.*" 2024-01-01
-        cloud-storage-clean stat aliyun "prod-.*" 2025-06-01 --timezone Asia/Shanghai
+        cloud-storage-clean stat aliyun ".*" 2025-01-01 --exclude "large-video/*"
     """
     configure_logging(None, verbose)
     logger = get_logger(__name__)
@@ -390,7 +398,8 @@ def stat(
         console.print("[cyan]Scanning for file type statistics...[/cyan]\n")
 
         scanner = BucketScanner(provider_instance)
-        summaries = list(scanner.scan_file_types(bucket_pattern, before_date))
+        exclude_patterns = tuple(exclude) if exclude else ()
+        summaries = list(scanner.scan_file_types(bucket_pattern, before_date, exclude_patterns))
 
         if not summaries:
             console.print("[yellow]No files found matching criteria.[/yellow]")
